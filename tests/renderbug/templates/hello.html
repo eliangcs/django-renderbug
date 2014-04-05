@@ -1,0 +1,19 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ title }}</title>
+</head>
+<body>
+  <h1>Hi, {{ name }}</h1>
+  <ul>
+    {% comment %}
+    {% for item in items %}
+      <li>{{ item.name }}</li>
+    {% endfor %}
+    {% endcomment %}
+  </ul>
+  <p>Total: ${{ price }}</p>
+  <p>{% trans 'Bitch' %}</p>
+</body>
+</html>
