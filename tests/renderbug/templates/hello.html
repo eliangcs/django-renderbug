@@ -7,13 +7,33 @@
 <body>
   <h1>Hi, {{ name }}</h1>
   <ul>
-    {% comment %}
     {% for item in items %}
       <li>{{ item.name }}</li>
     {% endfor %}
-    {% endcomment %}
   </ul>
   <p>Total: ${{ price }}</p>
-  <p>{% trans 'Bitch' %}</p>
+
+  <table border="1">
+    {% for row in table.data.rows %}
+      <tr>
+        <td>{{ row.name }}</td>
+        <td>{{ row.email }}</td>
+      </tr>
+    {% empty %}
+      <tr>
+        <td colspan="2">Empty</td>
+      </tr>
+    {% endfor %}
+  </table>
+
+  {% if request.user.authenticated %}
+    <p>Logged in</p>
+  {% else %}
+    <p>Not logged in</p>
+  {% endif %}
+
+  {% autoescape on %}
+    {{ body }}
+  {% endautoescape %}
 </body>
 </html>
