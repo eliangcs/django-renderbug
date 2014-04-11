@@ -5,6 +5,12 @@
   <title>{{ title }}</title>
 </head>
 <body>
+  <ul>
+    {% for error in form.errors %}
+      <li>{{ error }}</li>
+    {% endfor %}
+  </ul>
+  <p>{{ form.username }}</p>
   <h1>Hi, {{ name }}</h1>
   <ul>
     {% for item in items %}
@@ -41,5 +47,7 @@
   {% autoescape on %}
     {{ body }}
   {% endautoescape %}
+
+  {% blocktrans %}Hello, {{ first_name }}{% endblocktrans %}
 </body>
 </html>

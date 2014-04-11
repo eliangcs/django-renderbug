@@ -6,6 +6,9 @@ from django.template.loader import get_template
 from django.template.loader_tags import BlockNode, ExtendsNode
 from faker import Faker
 
+from django.template import TOKEN_TEXT, TOKEN_VAR
+from dotdict import dotdict
+
 
 # faker = Faker()
 
@@ -110,7 +113,7 @@ def merge_context(c1, c2):
 
 
 def populate(expression, value=None):
-    context = {}
+    context = dotdict()
 
     tokens = expression.split('.')
     num_tokens = len(tokens)
@@ -118,7 +121,7 @@ def populate(expression, value=None):
     for i, token in enumerate(tokens):
         if i < num_tokens - 1:
             if not isinstance(current.get(token), dict):
-                current[token] = {}
+                current[token] = dotdict()
             current = current[token]
         else:
             current[token] = value
@@ -149,7 +152,7 @@ def populate_operator(op, value):
     populator = route.get(op.id)
     if populator:
         return populator(op, value)
-    return {}
+    return dotdict()
 
 
 def populate_literal(literal, value):
@@ -179,7 +182,7 @@ def populate_operator_not(op, value):
 
 
 def populate_if_node(node):
-    context = {}
+    context = dotdict()
     first_cond = node.conditions_nodelists[0][0]
     merge_context(context, populate_operator(first_cond, True))
 
@@ -194,13 +197,13 @@ def populate_for_node(node):
     loopvars = node.loopvars
     arr = []
     for __ in xrange(3):
-        c = {}
+        c = dotdict()
         for child_node in node.nodelist_loop:
             merge_context(c, fake_context_from_node(child_node))
 
         for loopvar in loopvars:
             loopvar_context = c.pop(loopvar)
-            if loopvar_context:
+            if loopvar_context and isinstance(loopvar_context, dict):
                 c.update(loopvar_context)
 
         arr.append(c)
@@ -208,11 +211,20 @@ def populate_for_node(node):
 
 
 def populate_container_node(node):
-    context = {}
+    context = dotdict()
     for child_node in node.nodelist:
         populator = find_populator(type(child_node))
         if populator:
             context.update(populator(child_node))
+    return context
+
+
+def populate_blocktrans_node(node):
+    context = dotdict()
+    tokens = node.singular
+    for token in tokens:
+        if token.token_type == TOKEN_VAR:
+            context[token.contents] = faker.name()
     return context
 
 
@@ -229,7 +241,7 @@ _POPULATORS = {
     'django.template.defaulttags.IfNode': populate_if_node,
     'django.template.VariableNode': populate_variable_node,
     'django.template.debug.DebugVariableNode': populate_variable_node,
-    'django.templatetags.i18n.BlockTranslateNode': populate_container_node
+    'django.templatetags.i18n.BlockTranslateNode': populate_blocktrans_node
 }
 
 
@@ -237,21 +249,25 @@ def fake_context_from_node(node):
     populator = find_populator(type(node))
     if populator:
         return populator(node)
-    return {}
+    return dotdict()
 
 
 def fake_context_from_nodelist(nodelist):
-    context = {}
+    context = dotdict()
     for node in nodelist:
-        context.update(fake_context_from_node(node))
+        merge_context(context, fake_context_from_node(node))
     return context
 
 
 def render_template(request, path):
     t = get_template(path)
-    context = fake_context_from_nodelist(t.nodelist)
+    context = dotdict(
+        request=dotdict(GET={}))
+
+    merge_context(context, fake_context_from_nodelist(t.nodelist))
     import pprint
     pprint.pprint(context)
+
     return render(request, path, context)
 
 
